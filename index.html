@@ -1,0 +1,1185 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Gash Stat</title>
+<script src="https://unpkg.com/react@18/umd/react.development.js"></script>
+<script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+<script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Mono:wght@400;500&family=DM+Sans:wght@400;500;600&display=swap');
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body { background: #0a0a0a; color: #f0f0f0; font-family: 'DM Sans', sans-serif; min-height: 100vh; }
+  .game-root { max-width: 480px; margin: 0 auto; padding: 12px; min-height: 100vh; }
+  .logo { font-family: 'Bebas Neue', sans-serif; font-size: 52px; letter-spacing: 4px; color: #FFD700; text-align: center; line-height: 1; }
+  .logo-sub { font-family: 'DM Mono', monospace; font-size: 11px; letter-spacing: 3px; color: #666; text-align: center; margin-top: 2px; margin-bottom: 16px; }
+  .card { background: #161616; border: 1px solid #2a2a2a; border-radius: 16px; padding: 20px; margin-bottom: 12px; }
+  .card-accent { border-color: #FFD700; }
+  .item-label { font-family: 'DM Mono', monospace; font-size: 10px; letter-spacing: 2px; color: #FFD700; margin-bottom: 8px; }
+  .item-name { font-size: 22px; font-weight: 600; line-height: 1.2; color: #f0f0f0; }
+  .item-value { font-family: 'Bebas Neue', sans-serif; font-size: 36px; color: #FFD700; margin-top: 6px; }
+  .metric-badge { background: #1e1e1e; border: 1px solid #333; border-radius: 20px; padding: 8px 16px; font-family: 'DM Mono', monospace; font-size: 12px; color: #aaa; text-align: center; margin: 8px 0; letter-spacing: 1px; }
+  .vs-divider { text-align: center; font-family: 'Bebas Neue', sans-serif; font-size: 28px; color: #333; margin: -4px 0; }
+  .btn-row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 12px; }
+  .btn { border: none; border-radius: 12px; padding: 18px; font-family: 'Bebas Neue', sans-serif; font-size: 26px; letter-spacing: 2px; cursor: pointer; transition: transform 0.1s; width: 100%; }
+  .btn:active { transform: scale(0.96); }
+  .btn-higher { background: #1a4a1a; color: #4ade80; border: 1px solid #2d7a2d; }
+  .btn-higher:hover { background: #1f5a1f; }
+  .btn-lower { background: #4a1a1a; color: #f87171; border: 1px solid #7a2d2d; }
+  .btn-lower:hover { background: #5a1f1f; }
+  .btn-primary { background: #FFD700; color: #0a0a0a; border-radius: 12px; padding: 16px; font-family: 'Bebas Neue', sans-serif; font-size: 22px; letter-spacing: 2px; cursor: pointer; width: 100%; border: none; transition: opacity 0.1s; }
+  .btn-primary:hover { opacity: 0.9; }
+  .btn-primary:disabled { opacity: 0.4; cursor: not-allowed; }
+  .btn-secondary { background: transparent; color: #FFD700; border: 1px solid #FFD700; border-radius: 12px; padding: 14px; font-family: 'Bebas Neue', sans-serif; font-size: 18px; letter-spacing: 2px; cursor: pointer; width: 100%; transition: background 0.1s; }
+  .btn-secondary:hover { background: rgba(255,215,0,0.08); }
+  .timer-bar-wrap { background: #1e1e1e; border-radius: 4px; height: 6px; margin-bottom: 14px; overflow: hidden; }
+  .timer-bar { height: 100%; border-radius: 4px; transition: width 0.1s linear, background 0.5s; }
+  .timer-text { font-family: 'Bebas Neue', sans-serif; font-size: 28px; text-align: center; margin-bottom: 4px; }
+  .progress-dots { display: flex; gap: 6px; justify-content: center; margin-bottom: 14px; }
+  .dot { width: 28px; height: 6px; border-radius: 3px; background: #222; transition: background 0.2s; }
+  .dot-correct { background: #4ade80; }
+  .dot-wrong { background: #f87171; }
+  .dot-current { background: #FFD700; }
+  .feedback-overlay { border-radius: 16px; padding: 20px; margin-bottom: 12px; text-align: center; }
+  .feedback-correct { background: #0d2e0d; border: 1px solid #2d7a2d; }
+  .feedback-wrong { background: #2e0d0d; border: 1px solid #7a2d2d; }
+  .feedback-timeout { background: #1a1a00; border: 1px solid #4a4a00; }
+  .feedback-title { font-family: 'Bebas Neue', sans-serif; font-size: 36px; letter-spacing: 2px; }
+  .feedback-correct .feedback-title { color: #4ade80; }
+  .feedback-wrong .feedback-title { color: #f87171; }
+  .feedback-timeout .feedback-title { color: #FFD700; }
+  .feedback-vals { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 12px; }
+  .feedback-val-box { background: #111; border-radius: 10px; padding: 12px; }
+  .feedback-val-label { font-size: 11px; color: #666; font-family: 'DM Mono', monospace; letter-spacing: 1px; }
+  .feedback-val-name { font-size: 14px; font-weight: 500; margin: 4px 0; }
+  .feedback-val-num { font-family: 'Bebas Neue', sans-serif; font-size: 22px; color: #FFD700; }
+  .score-display { text-align: center; margin: 20px 0; }
+  .score-big { font-family: 'Bebas Neue', sans-serif; font-size: 80px; color: #FFD700; line-height: 1; }
+  .score-label { font-family: 'DM Mono', monospace; font-size: 12px; color: #666; letter-spacing: 2px; }
+  .emoji-grid { font-size: 24px; letter-spacing: 4px; text-align: center; margin: 16px 0; }
+  .share-box { background: #1e1e1e; border: 1px solid #333; border-radius: 10px; padding: 14px; font-family: 'DM Mono', monospace; font-size: 13px; color: #aaa; margin-bottom: 14px; white-space: pre-wrap; }
+  .lb-row { display: flex; align-items: center; gap: 10px; padding: 10px 0; border-bottom: 1px solid #1e1e1e; }
+  .lb-rank { font-family: 'Bebas Neue', sans-serif; font-size: 20px; color: #555; width: 24px; text-align: center; }
+  .lb-rank-1 { color: #FFD700; }
+  .lb-rank-2 { color: #aaa; }
+  .lb-rank-3 { color: #cd7f32; }
+  .lb-name { flex: 1; font-weight: 500; font-size: 15px; }
+  .lb-score { font-family: 'Bebas Neue', sans-serif; font-size: 22px; color: #FFD700; }
+  .lb-time { font-family: 'DM Mono', monospace; font-size: 11px; color: #555; }
+  .lb-tab-row { display: flex; gap: 6px; margin-bottom: 14px; }
+  .lb-tab { background: #1e1e1e; border: 1px solid #2a2a2a; border-radius: 8px; padding: 8px 14px; font-size: 12px; font-family: 'DM Mono', monospace; cursor: pointer; color: #888; letter-spacing: 1px; }
+  .lb-tab-active { background: #FFD700; color: #0a0a0a; border-color: #FFD700; }
+  .input-field { background: #1e1e1e; border: 1px solid #333; border-radius: 10px; padding: 14px 16px; font-size: 16px; color: #f0f0f0; width: 100%; font-family: 'DM Sans', sans-serif; outline: none; }
+  .input-field:focus { border-color: #FFD700; }
+  .section-title { font-family: 'DM Mono', monospace; font-size: 11px; letter-spacing: 2px; color: #555; margin-bottom: 10px; text-transform: uppercase; }
+  .streak-badge { display: inline-flex; align-items: center; gap: 6px; background: #1e1a00; border: 1px solid #4a3a00; border-radius: 20px; padding: 6px 14px; font-family: 'DM Mono', monospace; font-size: 12px; color: #FFD700; }
+  .category-hero { background: #0f0f00; border: 2px solid #FFD700; border-radius: 16px; padding: 22px 20px; text-align: center; margin-bottom: 14px; }
+  .category-hero-label { font-family: 'DM Mono', monospace; font-size: 10px; letter-spacing: 3px; color: #888; margin-bottom: 10px; text-transform: uppercase; }
+  .category-hero-name { font-family: 'Bebas Neue', sans-serif; font-size: 42px; letter-spacing: 3px; color: #FFD700; line-height: 1.05; }
+  .category-hero-sub { font-family: 'DM Mono', monospace; font-size: 11px; color: #555; margin-top: 8px; letter-spacing: 1px; }
+  .dim { color: #555; font-size: 13px; }
+  .gap { margin-bottom: 10px; }
+  .copied-toast { background: #1a4a1a; border: 1px solid #2d7a2d; color: #4ade80; border-radius: 8px; padding: 10px; text-align: center; font-family: 'DM Mono', monospace; font-size: 13px; margin-bottom: 10px; }
+  .already-played { text-align: center; padding: 24px 0; }
+  .already-title { font-family: 'Bebas Neue', sans-serif; font-size: 36px; color: #FFD700; }
+  .already-sub { color: #666; font-size: 14px; margin-top: 8px; }
+  .htp-title { font-family: 'Bebas Neue', sans-serif; font-size: 36px; color: #FFD700; text-align: center; letter-spacing: 3px; margin-bottom: 16px; }
+  .htp-row { display: flex; gap: 14px; align-items: flex-start; padding: 14px 0; border-bottom: 1px solid #1e1e1e; }
+  .htp-icon { font-family: 'Bebas Neue', sans-serif; font-size: 26px; color: #FFD700; min-width: 34px; text-align: center; padding-top: 2px; }
+  .htp-text { font-size: 15px; line-height: 1.6; color: #ccc; }
+  .htp-text b { color: #f0f0f0; font-weight: 600; }
+  .htp-dots { display: flex; gap: 6px; align-items: center; margin-top: 10px; flex-wrap: wrap; }
+  .htp-dot { width: 30px; height: 6px; border-radius: 3px; }
+  .htp-dot-label { font-family: 'DM Mono', monospace; font-size: 10px; color: #555; margin-left: 2px; margin-right: 8px; }
+  .btn-ghost { background: transparent; color: #666; border: 1px solid #2a2a2a; border-radius: 12px; padding: 12px; font-family: 'DM Mono', monospace; font-size: 12px; letter-spacing: 2px; cursor: pointer; width: 100%; transition: color 0.1s; }
+  .btn-ghost:hover { color: #FFD700; border-color: #444; }
+</style>
+</head>
+<body>
+<div id="root"></div>
+<script type="text/babel">
+const { useState, useRef } = React;
+
+const DATA = {
+  countryPop: {
+    label: "Country Population",
+    metricLabel: "Population",
+    items: [
+      { name:"China", value:1412000000, displayValue:"1.41 billion" },
+      { name:"India", value:1428000000, displayValue:"1.43 billion" },
+      { name:"USA", value:335000000, displayValue:"335 million" },
+      { name:"Indonesia", value:277000000, displayValue:"277 million" },
+      { name:"Pakistan", value:231000000, displayValue:"231 million" },
+      { name:"Brazil", value:215000000, displayValue:"215 million" },
+      { name:"Nigeria", value:223000000, displayValue:"223 million" },
+      { name:"Bangladesh", value:170000000, displayValue:"170 million" },
+      { name:"Russia", value:145000000, displayValue:"145 million" },
+      { name:"Ethiopia", value:126000000, displayValue:"126 million" },
+      { name:"Mexico", value:128000000, displayValue:"128 million" },
+      { name:"Japan", value:125000000, displayValue:"125 million" },
+      { name:"Germany", value:84000000, displayValue:"84 million" },
+      { name:"UK", value:68000000, displayValue:"68 million" },
+      { name:"France", value:68000000, displayValue:"68 million" },
+      { name:"Italy", value:59000000, displayValue:"59 million" },
+      { name:"Spain", value:47000000, displayValue:"47 million" },
+      { name:"Argentina", value:46000000, displayValue:"46 million" },
+      { name:"Canada", value:38000000, displayValue:"38 million" },
+      { name:"Poland", value:38000000, displayValue:"38 million" },
+      { name:"Algeria", value:45000000, displayValue:"45 million" },
+      { name:"Australia", value:26000000, displayValue:"26 million" },
+      { name:"Netherlands", value:18000000, displayValue:"18 million" },
+      { name:"Chile", value:19000000, displayValue:"19 million" },
+      { name:"Belgium", value:11700000, displayValue:"11.7 million" },
+      { name:"Portugal", value:10300000, displayValue:"10.3 million" },
+      { name:"Sweden", value:10500000, displayValue:"10.5 million" },
+      { name:"Hungary", value:10000000, displayValue:"10 million" },
+      { name:"Switzerland", value:8700000, displayValue:"8.7 million" },
+      { name:"Norway", value:5400000, displayValue:"5.4 million" },
+      { name:"Ireland", value:5000000, displayValue:"5 million" },
+      { name:"New Zealand", value:5100000, displayValue:"5.1 million" },
+      { name:"Singapore", value:5900000, displayValue:"5.9 million" },
+      { name:"Denmark", value:5900000, displayValue:"5.9 million" },
+      { name:"Finland", value:5500000, displayValue:"5.5 million" },
+      { name:"South Korea", value:51700000, displayValue:"51.7 million" },
+      { name:"Colombia", value:52000000, displayValue:"52 million" },
+      { name:"Ukraine", value:43500000, displayValue:"43.5 million" },
+      { name:"Kenya", value:55000000, displayValue:"55 million" },
+      { name:"South Africa", value:60000000, displayValue:"60 million" },
+    ]
+  },
+  countryArea: {
+    label: "Country Land Area",
+    metricLabel: "Land Area (km²)",
+    items: [
+      { name:"Russia", value:17098242, displayValue:"17,098,242 km²" },
+      { name:"Canada", value:9984670, displayValue:"9,984,670 km²" },
+      { name:"USA", value:9833517, displayValue:"9,833,517 km²" },
+      { name:"China", value:9596960, displayValue:"9,596,960 km²" },
+      { name:"Brazil", value:8515767, displayValue:"8,515,767 km²" },
+      { name:"Australia", value:7692024, displayValue:"7,692,024 km²" },
+      { name:"India", value:3287263, displayValue:"3,287,263 km²" },
+      { name:"Argentina", value:2780400, displayValue:"2,780,400 km²" },
+      { name:"Kazakhstan", value:2724900, displayValue:"2,724,900 km²" },
+      { name:"Algeria", value:2381741, displayValue:"2,381,741 km²" },
+      { name:"DR Congo", value:2344858, displayValue:"2,344,858 km²" },
+      { name:"Saudi Arabia", value:2149690, displayValue:"2,149,690 km²" },
+      { name:"Mexico", value:1964375, displayValue:"1,964,375 km²" },
+      { name:"Indonesia", value:1904569, displayValue:"1,904,569 km²" },
+      { name:"Iran", value:1648195, displayValue:"1,648,195 km²" },
+      { name:"Mongolia", value:1564116, displayValue:"1,564,116 km²" },
+      { name:"Peru", value:1285216, displayValue:"1,285,216 km²" },
+      { name:"Chad", value:1284000, displayValue:"1,284,000 km²" },
+      { name:"South Africa", value:1219090, displayValue:"1,219,090 km²" },
+      { name:"Colombia", value:1141748, displayValue:"1,141,748 km²" },
+      { name:"Nigeria", value:923768, displayValue:"923,768 km²" },
+      { name:"France", value:551695, displayValue:"551,695 km²" },
+      { name:"Spain", value:505990, displayValue:"505,990 km²" },
+      { name:"Sweden", value:450295, displayValue:"450,295 km²" },
+      { name:"Japan", value:377975, displayValue:"377,975 km²" },
+      { name:"Germany", value:357114, displayValue:"357,114 km²" },
+      { name:"Italy", value:301340, displayValue:"301,340 km²" },
+      { name:"New Zealand", value:268021, displayValue:"268,021 km²" },
+      { name:"UK", value:242495, displayValue:"242,495 km²" },
+      { name:"Romania", value:238397, displayValue:"238,397 km²" },
+      { name:"Ghana", value:238533, displayValue:"238,533 km²" },
+      { name:"South Korea", value:100210, displayValue:"100,210 km²" },
+      { name:"Portugal", value:92212, displayValue:"92,212 km²" },
+      { name:"Ireland", value:70273, displayValue:"70,273 km²" },
+      { name:"Switzerland", value:41285, displayValue:"41,285 km²" },
+      { name:"Netherlands", value:41543, displayValue:"41,543 km²" },
+      { name:"Denmark", value:42924, displayValue:"42,924 km²" },
+      { name:"Belgium", value:30528, displayValue:"30,528 km²" },
+    ]
+  },
+  capitalCityPop: {
+    label: "Capital City Population",
+    metricLabel: "Metro Population",
+    items: [
+      { name:"Tokyo, Japan", value:37400000, displayValue:"37.4 million" },
+      { name:"Delhi, India", value:32900000, displayValue:"32.9 million" },
+      { name:"Cairo, Egypt", value:21700000, displayValue:"21.7 million" },
+      { name:"Mexico City, Mexico", value:21600000, displayValue:"21.6 million" },
+      { name:"Beijing, China", value:22000000, displayValue:"22 million" },
+      { name:"Dhaka, Bangladesh", value:22000000, displayValue:"22 million" },
+      { name:"Kinshasa, DR Congo", value:15600000, displayValue:"15.6 million" },
+      { name:"Buenos Aires, Argentina", value:15600000, displayValue:"15.6 million" },
+      { name:"Moscow, Russia", value:12500000, displayValue:"12.5 million" },
+      { name:"Bogota, Colombia", value:11300000, displayValue:"11.3 million" },
+      { name:"Lima, Peru", value:11000000, displayValue:"11 million" },
+      { name:"Jakarta, Indonesia", value:11000000, displayValue:"11 million" },
+      { name:"Paris, France", value:11000000, displayValue:"11 million" },
+      { name:"Seoul, South Korea", value:9700000, displayValue:"9.7 million" },
+      { name:"London, UK", value:9500000, displayValue:"9.5 million" },
+      { name:"Tehran, Iran", value:9500000, displayValue:"9.5 million" },
+      { name:"Baghdad, Iraq", value:7600000, displayValue:"7.6 million" },
+      { name:"Riyadh, Saudi Arabia", value:7600000, displayValue:"7.6 million" },
+      { name:"Santiago, Chile", value:7100000, displayValue:"7.1 million" },
+      { name:"Madrid, Spain", value:6700000, displayValue:"6.7 million" },
+      { name:"Kabul, Afghanistan", value:4600000, displayValue:"4.6 million" },
+      { name:"Nairobi, Kenya", value:5100000, displayValue:"5.1 million" },
+      { name:"Addis Ababa, Ethiopia", value:5000000, displayValue:"5 million" },
+      { name:"Accra, Ghana", value:2600000, displayValue:"2.6 million" },
+      { name:"Brasilia, Brazil", value:2900000, displayValue:"2.9 million" },
+      { name:"Rome, Italy", value:2900000, displayValue:"2.9 million" },
+      { name:"Berlin, Germany", value:3700000, displayValue:"3.7 million" },
+      { name:"Stockholm, Sweden", value:1600000, displayValue:"1.6 million" },
+      { name:"Brussels, Belgium", value:2100000, displayValue:"2.1 million" },
+      { name:"Ottawa, Canada", value:1400000, displayValue:"1.4 million" },
+      { name:"Washington DC, USA", value:700000, displayValue:"700,000" },
+      { name:"Oslo, Norway", value:700000, displayValue:"700,000" },
+      { name:"Canberra, Australia", value:460000, displayValue:"460,000" },
+      { name:"Wellington, New Zealand", value:215000, displayValue:"215,000" },
+      { name:"Reykjavik, Iceland", value:130000, displayValue:"130,000" },
+      { name:"Valletta, Malta", value:6300, displayValue:"6,300" },
+    ]
+  },
+  footballStadium: {
+    label: "Football Stadium Capacity",
+    metricLabel: "Capacity",
+    items: [
+      { name:"Narendra Modi Stadium, India", value:132000, displayValue:"132,000" },
+      { name:"Rungrado 1st of May, North Korea", value:114000, displayValue:"114,000" },
+      { name:"Melbourne Cricket Ground", value:100024, displayValue:"100,024" },
+      { name:"Camp Nou, Barcelona", value:99354, displayValue:"99,354" },
+      { name:"FNB Stadium, Johannesburg", value:94736, displayValue:"94,736" },
+      { name:"Rose Bowl, Pasadena", value:92542, displayValue:"92,542" },
+      { name:"Wembley, England", value:90000, displayValue:"90,000" },
+      { name:"Azteca, Mexico City", value:87523, displayValue:"87,523" },
+      { name:"Signal Iduna Park, Dortmund", value:81365, displayValue:"81,365" },
+      { name:"Santiago Bernabeu, Real Madrid", value:81044, displayValue:"81,044" },
+      { name:"Luzhniki, Moscow", value:81000, displayValue:"81,000" },
+      { name:"San Siro, AC/Inter Milan", value:75923, displayValue:"75,923" },
+      { name:"Allianz Arena, Bayern Munich", value:75024, displayValue:"75,024" },
+      { name:"Old Trafford, Man Utd", value:74879, displayValue:"74,879" },
+      { name:"Olimpico, Roma/Lazio", value:70634, displayValue:"70,634" },
+      { name:"Da Luz, Benfica", value:64642, displayValue:"64,642" },
+      { name:"Tottenham Hotspur Stadium", value:62850, displayValue:"62,850" },
+      { name:"London Stadium, West Ham", value:62500, displayValue:"62,500" },
+      { name:"Celtic Park, Celtic", value:60832, displayValue:"60,832" },
+      { name:"Anfield, Liverpool", value:61276, displayValue:"61,276" },
+      { name:"Emirates Stadium, Arsenal", value:60704, displayValue:"60,704" },
+      { name:"Johan Cruyff Arena, Ajax", value:54990, displayValue:"54,990" },
+      { name:"Etihad, Man City", value:53400, displayValue:"53,400" },
+      { name:"Hampden Park, Scotland", value:52063, displayValue:"52,063" },
+      { name:"Ibrox, Rangers", value:50987, displayValue:"50,987" },
+      { name:"Dragao, Porto", value:50033, displayValue:"50,033" },
+      { name:"Parc des Princes, PSG", value:47929, displayValue:"47,929" },
+      { name:"Allianz Stadium, Juventus", value:41507, displayValue:"41,507" },
+      { name:"Stamford Bridge, Chelsea", value:40343, displayValue:"40,343" },
+      { name:"Goodison Park, Everton", value:39414, displayValue:"39,414" },
+      { name:"Villa Park, Aston Villa", value:42682, displayValue:"42,682" },
+      { name:"Elland Road, Leeds", value:37890, displayValue:"37,890" },
+    ]
+  },
+  airport: {
+    label: "Airport Passenger Numbers",
+    metricLabel: "Annual Passengers",
+    items: [
+      { name:"Atlanta Hartsfield-Jackson", value:93700000, displayValue:"93.7 million" },
+      { name:"Dubai International", value:87000000, displayValue:"87 million" },
+      { name:"Los Angeles LAX", value:75000000, displayValue:"75 million" },
+      { name:"London Heathrow", value:79000000, displayValue:"79 million" },
+      { name:"Istanbul Airport", value:76000000, displayValue:"76 million" },
+      { name:"Dallas/Fort Worth", value:73400000, displayValue:"73.4 million" },
+      { name:"Incheon, Seoul", value:71000000, displayValue:"71 million" },
+      { name:"Delhi Indira Gandhi", value:72000000, displayValue:"72 million" },
+      { name:"Chicago O'Hare", value:68300000, displayValue:"68.3 million" },
+      { name:"Tokyo Haneda", value:68000000, displayValue:"68 million" },
+      { name:"Paris Charles de Gaulle", value:67000000, displayValue:"67 million" },
+      { name:"Guangzhou Baiyun", value:63000000, displayValue:"63 million" },
+      { name:"Amsterdam Schiphol", value:61000000, displayValue:"61 million" },
+      { name:"Madrid Barajas", value:57000000, displayValue:"57 million" },
+      { name:"Frankfurt Airport", value:59000000, displayValue:"59 million" },
+      { name:"Singapore Changi", value:59000000, displayValue:"59 million" },
+      { name:"Munich Airport", value:48000000, displayValue:"48 million" },
+      { name:"Hong Kong International", value:47000000, displayValue:"47 million" },
+      { name:"Toronto Pearson", value:43000000, displayValue:"43 million" },
+      { name:"Sydney Airport", value:40000000, displayValue:"40 million" },
+      { name:"Tokyo Narita", value:37000000, displayValue:"37 million" },
+      { name:"Dublin Airport", value:32000000, displayValue:"32 million" },
+      { name:"Copenhagen Airport", value:30000000, displayValue:"30 million" },
+      { name:"Manchester Airport", value:28000000, displayValue:"28 million" },
+      { name:"Oslo Gardermoen", value:26000000, displayValue:"26 million" },
+      { name:"Edinburgh Airport", value:14000000, displayValue:"14 million" },
+      { name:"Reykjavik Keflavik", value:10000000, displayValue:"10 million" },
+      { name:"Belfast International", value:6500000, displayValue:"6.5 million" },
+      { name:"Newcastle Airport", value:5200000, displayValue:"5.2 million" },
+      { name:"Inverness Airport", value:800000, displayValue:"800,000" },
+    ]
+  },
+  tallestBuilding: {
+    label: "Tallest Buildings",
+    metricLabel: "Height (metres)",
+    items: [
+      { name:"Burj Khalifa, Dubai", value:828, displayValue:"828m" },
+      { name:"Merdeka 118, Kuala Lumpur", value:679, displayValue:"679m" },
+      { name:"Shanghai Tower", value:632, displayValue:"632m" },
+      { name:"Abraj Al-Bait, Mecca", value:601, displayValue:"601m" },
+      { name:"Ping An Finance Centre, Shenzhen", value:599, displayValue:"599m" },
+      { name:"Lotte World Tower, Seoul", value:555, displayValue:"555m" },
+      { name:"CN Tower, Toronto", value:553, displayValue:"553m" },
+      { name:"Ostankino Tower, Moscow", value:540, displayValue:"540m" },
+      { name:"One World Trade Center, NYC", value:541, displayValue:"541m" },
+      { name:"Guangzhou CTF Finance Centre", value:530, displayValue:"530m" },
+      { name:"Petronas Tower 1, KL", value:452, displayValue:"452m" },
+      { name:"Empire State Building, NYC", value:443, displayValue:"443m" },
+      { name:"Willis Tower, Chicago", value:442, displayValue:"442m" },
+      { name:"Eiffel Tower, Paris", value:330, displayValue:"330m" },
+      { name:"Salesforce Tower, San Francisco", value:326, displayValue:"326m" },
+      { name:"Chrysler Building, NYC", value:319, displayValue:"319m" },
+      { name:"The Shard, London", value:310, displayValue:"310m" },
+      { name:"Canary Wharf Tower, London", value:235, displayValue:"235m" },
+      { name:"30 St Mary Axe, London", value:180, displayValue:"180m" },
+      { name:"BT Tower, London", value:177, displayValue:"177m" },
+      { name:"Blackpool Tower", value:158, displayValue:"158m" },
+      { name:"St Paul's Cathedral, London", value:111, displayValue:"111m" },
+      { name:"Scott Monument, Edinburgh", value:61, displayValue:"61m" },
+      { name:"Angel of the North, Gateshead", value:20, displayValue:"20m" },
+    ]
+  },
+  mountain: {
+    label: "Mountain Height",
+    metricLabel: "Height (metres)",
+    items: [
+      { name:"Everest, Nepal/China", value:8849, displayValue:"8,849m" },
+      { name:"K2, Pakistan/China", value:8611, displayValue:"8,611m" },
+      { name:"Kangchenjunga, Nepal/India", value:8586, displayValue:"8,586m" },
+      { name:"Lhotse, Nepal", value:8516, displayValue:"8,516m" },
+      { name:"Makalu, Nepal", value:8485, displayValue:"8,485m" },
+      { name:"Cho Oyu, Nepal/China", value:8188, displayValue:"8,188m" },
+      { name:"Dhaulagiri, Nepal", value:8167, displayValue:"8,167m" },
+      { name:"Manaslu, Nepal", value:8163, displayValue:"8,163m" },
+      { name:"Nanga Parbat, Pakistan", value:8126, displayValue:"8,126m" },
+      { name:"Annapurna, Nepal", value:8091, displayValue:"8,091m" },
+      { name:"Aconcagua, Argentina", value:6961, displayValue:"6,961m" },
+      { name:"Denali, USA", value:6190, displayValue:"6,190m" },
+      { name:"Kilimanjaro, Tanzania", value:5895, displayValue:"5,895m" },
+      { name:"Elbrus, Russia", value:5642, displayValue:"5,642m" },
+      { name:"Vinson Massif, Antarctica", value:4892, displayValue:"4,892m" },
+      { name:"Puncak Jaya, Indonesia", value:4884, displayValue:"4,884m" },
+      { name:"Mont Blanc, France/Italy", value:4808, displayValue:"4,808m" },
+      { name:"Matterhorn, Switzerland/Italy", value:4478, displayValue:"4,478m" },
+      { name:"Mount Kenya, Kenya", value:5199, displayValue:"5,199m" },
+      { name:"Olympus, Greece", value:2918, displayValue:"2,918m" },
+      { name:"Ben Nevis, Scotland", value:1345, displayValue:"1,345m" },
+      { name:"Carrauntoohil, Ireland", value:1041, displayValue:"1,041m" },
+      { name:"Snowdon, Wales", value:1085, displayValue:"1,085m" },
+      { name:"Vesuvius, Italy", value:1281, displayValue:"1,281m" },
+      { name:"Scafell Pike, England", value:978, displayValue:"978m" },
+      { name:"Slieve Donard, N. Ireland", value:850, displayValue:"850m" },
+      { name:"Pen y Fan, Wales", value:886, displayValue:"886m" },
+      { name:"Croagh Patrick, Ireland", value:764, displayValue:"764m" },
+    ]
+  },
+  river: {
+    label: "River Length",
+    metricLabel: "Length (km)",
+    items: [
+      { name:"Nile, Africa", value:6650, displayValue:"6,650 km" },
+      { name:"Amazon, South America", value:6400, displayValue:"6,400 km" },
+      { name:"Yangtze, China", value:6300, displayValue:"6,300 km" },
+      { name:"Mississippi, USA", value:6275, displayValue:"6,275 km" },
+      { name:"Yenisei, Russia", value:5539, displayValue:"5,539 km" },
+      { name:"Yellow River, China", value:5464, displayValue:"5,464 km" },
+      { name:"Ob, Russia", value:5410, displayValue:"5,410 km" },
+      { name:"Congo, Africa", value:4700, displayValue:"4,700 km" },
+      { name:"Amur, Russia/China", value:4444, displayValue:"4,444 km" },
+      { name:"Lena, Russia", value:4400, displayValue:"4,400 km" },
+      { name:"Mekong, SE Asia", value:4350, displayValue:"4,350 km" },
+      { name:"Mackenzie, Canada", value:4241, displayValue:"4,241 km" },
+      { name:"Niger, West Africa", value:4200, displayValue:"4,200 km" },
+      { name:"Volga, Russia", value:3531, displayValue:"3,531 km" },
+      { name:"Indus, Asia", value:3180, displayValue:"3,180 km" },
+      { name:"Danube, Europe", value:2860, displayValue:"2,860 km" },
+      { name:"Euphrates, Middle East", value:2800, displayValue:"2,800 km" },
+      { name:"Zambezi, Africa", value:2574, displayValue:"2,574 km" },
+      { name:"Ganges, India", value:2525, displayValue:"2,525 km" },
+      { name:"Murray, Australia", value:2508, displayValue:"2,508 km" },
+      { name:"Colorado, USA", value:2330, displayValue:"2,330 km" },
+      { name:"Rhine, Europe", value:1230, displayValue:"1,230 km" },
+      { name:"Loire, France", value:1012, displayValue:"1,012 km" },
+      { name:"Elbe, Germany", value:1091, displayValue:"1,091 km" },
+      { name:"Seine, France", value:775, displayValue:"775 km" },
+      { name:"Po, Italy", value:682, displayValue:"682 km" },
+      { name:"Severn, UK", value:354, displayValue:"354 km" },
+      { name:"Thames, UK", value:346, displayValue:"346 km" },
+      { name:"Tay, Scotland", value:188, displayValue:"188 km" },
+      { name:"Clyde, Scotland", value:176, displayValue:"176 km" },
+      { name:"Liffey, Ireland", value:132, displayValue:"132 km" },
+    ]
+  },
+  gdp: {
+    label: "Country GDP",
+    metricLabel: "GDP (USD billions)",
+    items: [
+      { name:"USA", value:27360, displayValue:"$27.4tn" },
+      { name:"China", value:17800, displayValue:"$17.8tn" },
+      { name:"Germany", value:4430, displayValue:"$4.4tn" },
+      { name:"Japan", value:4210, displayValue:"$4.2tn" },
+      { name:"India", value:3730, displayValue:"$3.7tn" },
+      { name:"UK", value:3080, displayValue:"$3.1tn" },
+      { name:"France", value:2920, displayValue:"$2.9tn" },
+      { name:"Italy", value:2170, displayValue:"$2.2tn" },
+      { name:"Canada", value:2090, displayValue:"$2.1tn" },
+      { name:"Brazil", value:2080, displayValue:"$2.1tn" },
+      { name:"Russia", value:1860, displayValue:"$1.9tn" },
+      { name:"South Korea", value:1710, displayValue:"$1.7tn" },
+      { name:"Australia", value:1700, displayValue:"$1.7tn" },
+      { name:"Spain", value:1580, displayValue:"$1.6tn" },
+      { name:"Mexico", value:1320, displayValue:"$1.3tn" },
+      { name:"Indonesia", value:1320, displayValue:"$1.3tn" },
+      { name:"Netherlands", value:1090, displayValue:"$1.1tn" },
+      { name:"Saudi Arabia", value:1060, displayValue:"$1.1tn" },
+      { name:"Turkey", value:1030, displayValue:"$1.0tn" },
+      { name:"Poland", value:748, displayValue:"$748bn" },
+      { name:"Sweden", value:593, displayValue:"$593bn" },
+      { name:"Ireland", value:550, displayValue:"$550bn" },
+      { name:"Israel", value:520, displayValue:"$520bn" },
+      { name:"Norway", value:546, displayValue:"$546bn" },
+      { name:"Thailand", value:512, displayValue:"$512bn" },
+      { name:"UAE", value:509, displayValue:"$509bn" },
+      { name:"Denmark", value:404, displayValue:"$404bn" },
+      { name:"South Africa", value:380, displayValue:"$380bn" },
+      { name:"Argentina", value:621, displayValue:"$621bn" },
+      { name:"Belgium", value:622, displayValue:"$622bn" },
+      { name:"New Zealand", value:247, displayValue:"$247bn" },
+      { name:"Luxembourg", value:86, displayValue:"$86bn" },
+      { name:"Iceland", value:27, displayValue:"$27bn" },
+    ]
+  },
+  lifeExpectancy: {
+    label: "Life Expectancy",
+    metricLabel: "Life Expectancy (years)",
+    items: [
+      { name:"Singapore", value:83.9, displayValue:"83.9 yrs" },
+      { name:"Japan", value:84.3, displayValue:"84.3 yrs" },
+      { name:"South Korea", value:83.5, displayValue:"83.5 yrs" },
+      { name:"Switzerland", value:83.4, displayValue:"83.4 yrs" },
+      { name:"Spain", value:83.4, displayValue:"83.4 yrs" },
+      { name:"Australia", value:83.3, displayValue:"83.3 yrs" },
+      { name:"Italy", value:83.2, displayValue:"83.2 yrs" },
+      { name:"Norway", value:83.2, displayValue:"83.2 yrs" },
+      { name:"Sweden", value:83.0, displayValue:"83.0 yrs" },
+      { name:"Israel", value:82.6, displayValue:"82.6 yrs" },
+      { name:"France", value:82.5, displayValue:"82.5 yrs" },
+      { name:"Canada", value:82.3, displayValue:"82.3 yrs" },
+      { name:"New Zealand", value:82.0, displayValue:"82.0 yrs" },
+      { name:"Ireland", value:82.0, displayValue:"82.0 yrs" },
+      { name:"Belgium", value:81.5, displayValue:"81.5 yrs" },
+      { name:"Netherlands", value:81.8, displayValue:"81.8 yrs" },
+      { name:"UK", value:81.4, displayValue:"81.4 yrs" },
+      { name:"Denmark", value:81.3, displayValue:"81.3 yrs" },
+      { name:"Germany", value:81.1, displayValue:"81.1 yrs" },
+      { name:"China", value:78.2, displayValue:"78.2 yrs" },
+      { name:"Turkey", value:77.7, displayValue:"77.7 yrs" },
+      { name:"USA", value:76.1, displayValue:"76.1 yrs" },
+      { name:"Argentina", value:76.7, displayValue:"76.7 yrs" },
+      { name:"Brazil", value:75.9, displayValue:"75.9 yrs" },
+      { name:"Mexico", value:75.1, displayValue:"75.1 yrs" },
+      { name:"Indonesia", value:74.1, displayValue:"74.1 yrs" },
+      { name:"Russia", value:73.4, displayValue:"73.4 yrs" },
+      { name:"Bangladesh", value:73.0, displayValue:"73.0 yrs" },
+      { name:"India", value:70.8, displayValue:"70.8 yrs" },
+      { name:"Pakistan", value:67.3, displayValue:"67.3 yrs" },
+      { name:"Kenya", value:64.3, displayValue:"64.3 yrs" },
+      { name:"Afghanistan", value:64.5, displayValue:"64.5 yrs" },
+      { name:"Nigeria", value:55.8, displayValue:"55.8 yrs" },
+      { name:"Chad", value:54.2, displayValue:"54.2 yrs" },
+    ]
+  },
+  olympicMedals: {
+    label: "Olympic Gold Medals",
+    metricLabel: "All-time Gold Medals",
+    items: [
+      { name:"USA", value:1061, displayValue:"1,061" },
+      { name:"USSR (historical)", value:440, displayValue:"440" },
+      { name:"UK", value:286, displayValue:"286" },
+      { name:"China", value:285, displayValue:"285" },
+      { name:"France", value:248, displayValue:"248" },
+      { name:"Germany", value:242, displayValue:"242" },
+      { name:"Italy", value:236, displayValue:"236" },
+      { name:"Sweden", value:196, displayValue:"196" },
+      { name:"Hungary", value:181, displayValue:"181" },
+      { name:"Australia", value:174, displayValue:"174" },
+      { name:"Japan", value:170, displayValue:"170" },
+      { name:"East Germany (historical)", value:153, displayValue:"153" },
+      { name:"Norway", value:148, displayValue:"148" },
+      { name:"Finland", value:132, displayValue:"132" },
+      { name:"Netherlands", value:118, displayValue:"118" },
+      { name:"South Korea", value:96, displayValue:"96" },
+      { name:"Romania", value:89, displayValue:"89" },
+      { name:"Cuba", value:84, displayValue:"84" },
+      { name:"Canada", value:73, displayValue:"73" },
+      { name:"Poland", value:71, displayValue:"71" },
+      { name:"Bulgaria", value:57, displayValue:"57" },
+      { name:"Switzerland", value:56, displayValue:"56" },
+      { name:"Denmark", value:47, displayValue:"47" },
+      { name:"New Zealand", value:46, displayValue:"46" },
+      { name:"Belgium", value:45, displayValue:"45" },
+      { name:"Spain", value:45, displayValue:"45" },
+      { name:"Brazil", value:37, displayValue:"37" },
+      { name:"Kenya", value:36, displayValue:"36" },
+      { name:"Jamaica", value:27, displayValue:"27" },
+      { name:"Mexico", value:13, displayValue:"13" },
+      { name:"Ireland", value:13, displayValue:"13" },
+      { name:"Portugal", value:5, displayValue:"5" },
+    ]
+  },
+  themePark: {
+    label: "Theme Park Visitors",
+    metricLabel: "Annual Visitors",
+    items: [
+      { name:"Disneyland, California", value:18300000, displayValue:"18.3 million" },
+      { name:"Magic Kingdom, Florida", value:17700000, displayValue:"17.7 million" },
+      { name:"Tokyo Disneyland", value:16000000, displayValue:"16 million" },
+      { name:"Tokyo DisneySea", value:14000000, displayValue:"14 million" },
+      { name:"Universal Studios Japan", value:14300000, displayValue:"14.3 million" },
+      { name:"EPCOT, Florida", value:12200000, displayValue:"12.2 million" },
+      { name:"Shanghai Disney Resort", value:11800000, displayValue:"11.8 million" },
+      { name:"Hollywood Studios, Florida", value:11500000, displayValue:"11.5 million" },
+      { name:"Universal Studios Florida", value:10900000, displayValue:"10.9 million" },
+      { name:"Animal Kingdom, Florida", value:10600000, displayValue:"10.6 million" },
+      { name:"Islands of Adventure, Florida", value:10400000, displayValue:"10.4 million" },
+      { name:"Disneyland Paris", value:10400000, displayValue:"10.4 million" },
+      { name:"Universal Studios Hollywood", value:9900000, displayValue:"9.9 million" },
+      { name:"Disney California Adventure", value:9900000, displayValue:"9.9 million" },
+      { name:"Everland, South Korea", value:6600000, displayValue:"6.6 million" },
+      { name:"Ocean Park, Hong Kong", value:6300000, displayValue:"6.3 million" },
+      { name:"Lotte World, South Korea", value:5800000, displayValue:"5.8 million" },
+      { name:"Europa-Park, Germany", value:5700000, displayValue:"5.7 million" },
+      { name:"Tivoli Gardens, Denmark", value:4700000, displayValue:"4.7 million" },
+      { name:"PortAventura, Spain", value:3500000, displayValue:"3.5 million" },
+      { name:"Gardaland, Italy", value:3200000, displayValue:"3.2 million" },
+      { name:"Liseberg, Sweden", value:3100000, displayValue:"3.1 million" },
+      { name:"Alton Towers, UK", value:2600000, displayValue:"2.6 million" },
+      { name:"Legoland Windsor, UK", value:2200000, displayValue:"2.2 million" },
+      { name:"Phantasialand, Germany", value:2000000, displayValue:"2.0 million" },
+      { name:"Flamingo Land, UK", value:1500000, displayValue:"1.5 million" },
+      { name:"Thorpe Park, UK", value:1700000, displayValue:"1.7 million" },
+      { name:"Walibi Holland, Netherlands", value:1100000, displayValue:"1.1 million" },
+    ]
+  },
+  formulaOne: {
+    label: "F1 Career Race Wins",
+    metricLabel: "Race Wins",
+    items: [
+      { name:"Lewis Hamilton", value:103, displayValue:"103" },
+      { name:"Michael Schumacher", value:91, displayValue:"91" },
+      { name:"Max Verstappen", value:62, displayValue:"62" },
+      { name:"Sebastian Vettel", value:53, displayValue:"53" },
+      { name:"Alain Prost", value:51, displayValue:"51" },
+      { name:"Ayrton Senna", value:41, displayValue:"41" },
+      { name:"Fernando Alonso", value:32, displayValue:"32" },
+      { name:"Nigel Mansell", value:31, displayValue:"31" },
+      { name:"Jackie Stewart", value:27, displayValue:"27" },
+      { name:"Jim Clark", value:25, displayValue:"25" },
+      { name:"Niki Lauda", value:25, displayValue:"25" },
+      { name:"Juan Manuel Fangio", value:24, displayValue:"24" },
+      { name:"Nelson Piquet", value:23, displayValue:"23" },
+      { name:"Damon Hill", value:22, displayValue:"22" },
+      { name:"Mika Hakkinen", value:20, displayValue:"20" },
+      { name:"Stirling Moss", value:16, displayValue:"16" },
+      { name:"Jenson Button", value:15, displayValue:"15" },
+      { name:"Emerson Fittipaldi", value:14, displayValue:"14" },
+      { name:"Graham Hill", value:14, displayValue:"14" },
+      { name:"Jack Brabham", value:14, displayValue:"14" },
+      { name:"David Coulthard", value:13, displayValue:"13" },
+      { name:"Kimi Raikkonen", value:21, displayValue:"21" },
+      { name:"Carlos Sainz Jr", value:4, displayValue:"4" },
+      { name:"Charles Leclerc", value:7, displayValue:"7" },
+      { name:"Rubens Barrichello", value:11, displayValue:"11" },
+      { name:"Ralf Schumacher", value:6, displayValue:"6" },
+      { name:"Felipe Massa", value:11, displayValue:"11" },
+    ]
+  },
+  worldCupWins: {
+    label: "FIFA World Cup Wins",
+    metricLabel: "World Cup Titles",
+    items: [
+      { name:"Brazil", value:5, displayValue:"5" },
+      { name:"Germany", value:4, displayValue:"4" },
+      { name:"Italy", value:4, displayValue:"4" },
+      { name:"Argentina", value:3, displayValue:"3" },
+      { name:"France", value:2, displayValue:"2" },
+      { name:"Uruguay", value:2, displayValue:"2" },
+      { name:"England", value:1, displayValue:"1" },
+      { name:"Spain", value:1, displayValue:"1" },
+      { name:"USA (women)", value:4, displayValue:"4 (women)" },
+      { name:"Norway (women)", value:1, displayValue:"1 (women)" },
+    ]
+  },
+  nbaChampionships: {
+    label: "NBA Championship Titles",
+    metricLabel: "NBA Titles",
+    items: [
+      { name:"Boston Celtics", value:18, displayValue:"18" },
+      { name:"Los Angeles Lakers", value:17, displayValue:"17" },
+      { name:"Golden State Warriors", value:7, displayValue:"7" },
+      { name:"Chicago Bulls", value:6, displayValue:"6" },
+      { name:"San Antonio Spurs", value:5, displayValue:"5" },
+      { name:"Miami Heat", value:3, displayValue:"3" },
+      { name:"Philadelphia 76ers", value:3, displayValue:"3" },
+      { name:"Detroit Pistons", value:3, displayValue:"3" },
+      { name:"New York Knicks", value:2, displayValue:"2" },
+      { name:"Houston Rockets", value:2, displayValue:"2" },
+      { name:"Dallas Mavericks", value:1, displayValue:"1" },
+      { name:"Cleveland Cavaliers", value:1, displayValue:"1" },
+      { name:"Toronto Raptors", value:1, displayValue:"1" },
+      { name:"Milwaukee Bucks", value:2, displayValue:"2" },
+      { name:"Oklahoma City Thunder", value:1, displayValue:"1" },
+      { name:"Portland Trail Blazers", value:1, displayValue:"1" },
+      { name:"Seattle SuperSonics", value:1, displayValue:"1" },
+      { name:"Denver Nuggets", value:1, displayValue:"1" },
+      { name:"Washington Wizards", value:1, displayValue:"1" },
+      { name:"Atlanta Hawks", value:1, displayValue:"1" },
+      { name:"Sacramento Kings", value:1, displayValue:"1" },
+    ]
+  },
+  moonDistance: {
+    label: "Distance from Earth to Planet",
+    metricLabel: "Average Distance (million km)",
+    items: [
+      { name:"Moon", value:0.384, displayValue:"0.384 million km" },
+      { name:"Venus", value:41, displayValue:"41 million km" },
+      { name:"Mars", value:78, displayValue:"78 million km" },
+      { name:"Mercury", value:92, displayValue:"92 million km" },
+      { name:"Jupiter", value:628, displayValue:"628 million km" },
+      { name:"Saturn", value:1275, displayValue:"1,275 million km" },
+      { name:"Uranus", value:2724, displayValue:"2,724 million km" },
+      { name:"Neptune", value:4351, displayValue:"4,351 million km" },
+    ]
+  }
+};
+
+const ALL_CATEGORIES = Object.keys(DATA);
+
+function seededRandom(seed) {
+  let s = seed;
+  return () => {
+    s = (s * 1664525 + 1013904223) & 0xffffffff;
+    return (s >>> 0) / 0xffffffff;
+  };
+}
+
+function getTodayKey() {
+  const d = new Date();
+  return d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0');
+}
+
+function dateSeed() { return parseInt(getTodayKey().replace(/-/g,''), 10); }
+
+const DIFFICULTY = [
+  { minGapPct: 0.50, maxGapPct: 1.00 },
+  { minGapPct: 0.40, maxGapPct: 1.00 },
+  { minGapPct: 0.25, maxGapPct: 0.70 },
+  { minGapPct: 0.20, maxGapPct: 0.60 },
+  { minGapPct: 0.15, maxGapPct: 0.50 },
+  { minGapPct: 0.10, maxGapPct: 0.40 },
+  { minGapPct: 0.08, maxGapPct: 0.30 },
+  { minGapPct: 0.06, maxGapPct: 0.25 },
+  { minGapPct: 0.04, maxGapPct: 0.18 },
+  { minGapPct: 0.03, maxGapPct: 0.15 },
+];
+
+function pickDailyCatKey(rng) {
+  return ALL_CATEGORIES[Math.floor(rng() * ALL_CATEGORIES.length)];
+}
+
+function generateDailyQuestions() {
+  const rng = seededRandom(dateSeed());
+  const catKey = pickDailyCatKey(rng);
+  const cat = DATA[catKey];
+  const items = cat.items;
+  const questions = [];
+  const usedIndices = new Set(); // each item can only appear ONCE across the whole game
+
+  for (let i = 0; i < 10; i++) {
+    const { minGapPct, maxGapPct } = DIFFICULTY[i];
+
+    // Build all valid candidate pairs from unused items, within difficulty band
+    const candidates = [];
+    for (let a = 0; a < items.length; a++) {
+      if (usedIndices.has(a)) continue;
+      for (let b = 0; b < items.length; b++) {
+        if (b === a || usedIndices.has(b)) continue;
+        if (items[a].value === items[b].value) continue;
+        const maxVal = Math.max(items[a].value, items[b].value);
+        const gapPct = Math.abs(items[a].value - items[b].value) / maxVal;
+        if (gapPct >= minGapPct && gapPct <= maxGapPct) candidates.push([a, b]);
+      }
+    }
+
+    // Shuffle
+    for (let k = candidates.length - 1; k > 0; k--) {
+      const j = Math.floor(rng() * (k + 1));
+      [candidates[k], candidates[j]] = [candidates[j], candidates[k]];
+    }
+
+    let picked = candidates.length > 0 ? candidates[0] : null;
+
+    // Fallback: relax upper bound if nothing found in band
+    if (!picked) {
+      const loose = [];
+      for (let a = 0; a < items.length; a++) {
+        if (usedIndices.has(a)) continue;
+        for (let b = 0; b < items.length; b++) {
+          if (b === a || usedIndices.has(b)) continue;
+          if (items[a].value === items[b].value) continue;
+          const maxVal = Math.max(items[a].value, items[b].value);
+          const gapPct = Math.abs(items[a].value - items[b].value) / maxVal;
+          if (gapPct >= minGapPct) loose.push([a, b]);
+        }
+      }
+      for (let k = loose.length - 1; k > 0; k--) {
+        const j = Math.floor(rng() * (k + 1));
+        [loose[k], loose[j]] = [loose[j], loose[k]];
+      }
+      picked = loose.length > 0 ? loose[0] : null;
+    }
+
+    if (picked) {
+      const [idxA, idxB] = picked;
+      usedIndices.add(idxA);
+      usedIndices.add(idxB);
+      questions.push({
+        catKey, metricLabel: cat.metricLabel,
+        a: items[idxA], b: items[idxB],
+        answer: items[idxB].value > items[idxA].value ? 'higher' : 'lower'
+      });
+    }
+  }
+  return questions;
+}
+
+function getTodayCategoryInfo() {
+  const rng = seededRandom(dateSeed());
+  const catKey = pickDailyCatKey(rng);
+  return { catKey, label: DATA[catKey].label, metricLabel: DATA[catKey].metricLabel };
+}
+
+function formatTime(ms) {
+  const s = Math.floor(ms / 1000);
+  const m = Math.floor(s / 60);
+  return m > 0 ? m + 'm ' + (s % 60) + 's' : s + 's';
+}
+
+function getLeaderboard() { try { return JSON.parse(localStorage.getItem('gashstat_lb') || '[]'); } catch { return []; } }
+
+function saveScore(name, score, timeMs, catLabel) {
+  const lb = getLeaderboard();
+  lb.push({ name, score, total: 10, timeMs, date: getTodayKey(), catLabel, ts: Date.now() });
+  localStorage.setItem('gashstat_lb', JSON.stringify(lb));
+}
+
+function hasPlayedToday(name) { return getLeaderboard().some(e => e.date === getTodayKey() && e.name === name); }
+function markGameStart(name) { localStorage.setItem('gashstat_start_' + getTodayKey(), JSON.stringify({ name, ts: Date.now() })); }
+
+function getPlayerStreak(name) {
+  const lb = getLeaderboard().filter(e => e.name === name);
+  if (!lb.length) return 0;
+  const dates = [...new Set(lb.map(e => e.date))].sort().reverse();
+  let streak = 0;
+  for (let i = 0; i < dates.length; i++) {
+    const d = new Date(); d.setDate(d.getDate() - i);
+    const ek = d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0');
+    if (dates[i] === ek) streak++; else break;
+  }
+  return streak;
+}
+
+const QUESTIONS = generateDailyQuestions();
+const TODAY_CAT = getTodayCategoryInfo();
+
+function Dot({ state }) {
+  let cls = 'dot';
+  if (state === 'correct') cls += ' dot-correct';
+  else if (state === 'wrong') cls += ' dot-wrong';
+  else if (state === 'current') cls += ' dot-current';
+  return React.createElement('div', { className: cls });
+}
+
+function LeaderboardView({ playerName }) {
+  const [tab, setTab] = useState('today');
+  const lb = getLeaderboard();
+  const today = getTodayKey();
+  const filtered = tab === 'today'
+    ? lb.filter(e => e.date === today)
+    : lb.filter(e => {
+        const d = new Date(today); d.setDate(d.getDate() - 6);
+        const dk = d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0');
+        return e.date >= dk;
+      });
+  const byNameDate = {};
+  filtered.forEach(e => {
+    const key = e.name + '|' + e.date;
+    if (!byNameDate[key] || e.score > byNameDate[key].score || (e.score === byNameDate[key].score && e.timeMs < byNameDate[key].timeMs))
+      byNameDate[key] = e;
+  });
+  let rows = Object.values(byNameDate);
+  if (tab === '7days') {
+    const byName = {};
+    rows.forEach(e => {
+      if (!byName[e.name]) byName[e.name] = { name: e.name, score: 0, timeMs: 0 };
+      byName[e.name].score += e.score;
+      byName[e.name].timeMs += e.timeMs;
+    });
+    rows = Object.values(byName);
+  }
+  rows.sort((a, b) => b.score - a.score || a.timeMs - b.timeMs);
+  return (
+    <div>
+      <div className="lb-tab-row">
+        {['today','7days'].map(t => (
+          <button key={t} className={'lb-tab' + (tab===t?' lb-tab-active':'')} onClick={() => setTab(t)}>
+            {t==='today'?'Today':'7 Days'}
+          </button>
+        ))}
+      </div>
+      {rows.length === 0 && <p className="dim" style={{textAlign:'center',padding:'20px 0'}}>No scores yet. Go play!</p>}
+      {rows.map((e,i) => (
+        <div key={i} className="lb-row">
+          <span className={'lb-rank' + (i<3?' lb-rank-'+(i+1):'')}>{i+1}</span>
+          <span className="lb-name" style={e.name===playerName?{color:'#FFD700'}:{}}>{e.name}</span>
+          <div style={{textAlign:'right'}}>
+            <div className="lb-score">{tab==='7days'?e.score:e.score+'/10'}</div>
+            <div className="lb-time">{formatTime(e.timeMs)}</div>
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+function App() {
+  const [screen, setScreen] = useState('name');
+  const [playerName, setPlayerName] = useState(() => localStorage.getItem('gashstat_name') || '');
+  const [nameInput, setNameInput] = useState(() => localStorage.getItem('gashstat_name') || '');
+  const [currentQ, setCurrentQ] = useState(0);
+  const [answers, setAnswers] = useState([]);
+  const [feedback, setFeedback] = useState(null);
+  const [timeLeft, setTimeLeft] = useState(7);
+  const [totalTimeMs, setTotalTimeMs] = useState(0);
+  const [copied, setCopied] = useState(false);
+  const timerRef = useRef(null);
+  const answersRef = useRef([]);
+  const gameStartRef = useRef(null);
+
+  const qNow = QUESTIONS[currentQ] || QUESTIONS[0];
+
+  function doTimeout() {
+    clearInterval(timerRef.current);
+    const newAnswers = [...answersRef.current, 'timeout'];
+    answersRef.current = newAnswers;
+    setAnswers([...newAnswers]);
+    setFeedback({ result: 'timeout', q: QUESTIONS[newAnswers.length - 1] || qNow });
+    setScreen('feedback');
+    setTimeout(() => advanceQ(newAnswers), 2200);
+  }
+
+  function startTimer() {
+    setTimeLeft(7);
+    clearInterval(timerRef.current);
+    let t = 7;
+    timerRef.current = setInterval(() => {
+      t = Math.round((t - 0.1) * 10) / 10;
+      setTimeLeft(t);
+      if (t <= 0) { clearInterval(timerRef.current); doTimeout(); }
+    }, 100);
+  }
+
+  function startGame(name) {
+    localStorage.setItem('gashstat_name', name);
+    setPlayerName(name);
+    markGameStart(name);
+    answersRef.current = [];
+    setAnswers([]);
+    setCurrentQ(0);
+    gameStartRef.current = Date.now();
+    setScreen('game');
+    setTimeout(startTimer, 100);
+  }
+
+  function handleAnswer(choice) {
+    clearInterval(timerRef.current);
+    const qIdx = answersRef.current.length;
+    const q = QUESTIONS[qIdx];
+    const result = choice === q.answer ? 'correct' : 'wrong';
+    const newAnswers = [...answersRef.current, result];
+    answersRef.current = newAnswers;
+    setAnswers([...newAnswers]);
+    setFeedback({ result, q });
+    setScreen('feedback');
+    setTimeout(() => advanceQ(newAnswers), 2200);
+  }
+
+  function advanceQ(newAnswers) {
+    const next = newAnswers.length;
+    if (next >= QUESTIONS.length) {
+      const score = newAnswers.filter(a => a === 'correct').length;
+      const elapsed = Date.now() - gameStartRef.current;
+      setTotalTimeMs(elapsed);
+      saveScore(playerName, score, elapsed, TODAY_CAT.label);
+      setCurrentQ(9);
+      setScreen('results');
+    } else {
+      setCurrentQ(next);
+      setScreen('game');
+      setTimeout(startTimer, 100);
+    }
+  }
+
+  function handleNameSubmit() {
+    const name = nameInput.trim();
+    if (!name) return;
+    localStorage.setItem('gashstat_name', name);
+    setPlayerName(name);
+    if (hasPlayedToday(name)) setScreen('alreadyPlayed');
+    else startGame(name);
+  }
+
+  const score = answers.filter(a => a === 'correct').length;
+  const emojiGrid = answers.map(a => a === 'correct' ? '🟩' : a === 'wrong' ? '🟥' : '⬛').join('');
+  const shareText = 'Gash Stat — ' + getTodayKey() + '\n' + TODAY_CAT.label + '\n' + score + '/10\n' + emojiGrid;
+
+  function copyShare() {
+    navigator.clipboard.writeText(shareText).then(() => { setCopied(true); setTimeout(() => setCopied(false), 2000); }).catch(() => {});
+  }
+
+  if (screen === 'name') {
+    const streak = getPlayerStreak(nameInput.trim());
+    return (
+      <div className="game-root">
+        <div style={{paddingTop: 20}}>
+          <div className="logo">GASH STAT</div>
+          <div className="logo-sub">DAILY HIGHER OR LOWER</div>
+
+          <div className="category-hero">
+            <div className="category-hero-label">Today's Category</div>
+            <div className="category-hero-name">{TODAY_CAT.label}</div>
+            <div className="category-hero-sub">10 questions · 7 seconds each · everyone plays the same</div>
+          </div>
+
+          <div className="card">
+            <div className="section-title">Who are you?</div>
+            <input
+              className="input-field"
+              placeholder="Enter your name..."
+              value={nameInput}
+              onChange={e => setNameInput(e.target.value)}
+              onKeyDown={e => e.key === 'Enter' && handleNameSubmit()}
+              maxLength={20}
+              autoFocus
+            />
+            {nameInput.trim() && streak > 1 && (
+              <div style={{marginTop: 10}}><span className="streak-badge">🔥 {streak} day streak</span></div>
+            )}
+          </div>
+
+          <div className="gap">
+            <button className="btn-primary" onClick={handleNameSubmit} disabled={!nameInput.trim()}>PLAY TODAY'S GAME</button>
+          </div>
+          <div className="gap">
+            <button className="btn-secondary" onClick={() => { setPlayerName(nameInput.trim()); setScreen('leaderboard'); }}>GASH LEAGUE</button>
+          </div>
+          <button className="btn-ghost" onClick={() => setScreen('howToPlay')}>HOW TO PLAY</button>
+        </div>
+      </div>
+    );
+  }
+
+  if (screen === 'howToPlay') {
+    return (
+      <div className="game-root">
+        <div style={{paddingTop: 20}}>
+          <div className="htp-title">HOW TO PLAY</div>
+          <div className="card">
+            <div className="htp-row">
+              <div className="htp-icon">1</div>
+              <div className="htp-text">You see two items from the same category. <b>Item A</b> shows its value. <b>Item B</b> is hidden.</div>
+            </div>
+            <div className="htp-row">
+              <div className="htp-icon">2</div>
+              <div className="htp-text">Decide whether Item B's value is <b>higher</b> or <b>lower</b> than Item A. You have <b>7 seconds</b> to answer.</div>
+            </div>
+            <div className="htp-row">
+              <div className="htp-icon">3</div>
+              <div className="htp-text">There are <b>10 questions</b> per day. Each correct answer scores 1 point. Wrong answers and timeouts score 0, but the game continues.</div>
+            </div>
+            <div className="htp-row">
+              <div className="htp-icon">4</div>
+              <div className="htp-text">Questions get harder as you go. Early rounds have obvious gaps. By round 9 and 10, the differences are tight.</div>
+            </div>
+            <div className="htp-row">
+              <div className="htp-icon">5</div>
+              <div className="htp-text"><b>Everyone plays the same questions</b> each day, seeded from the date. One attempt per player per day. No refreshing for a better draw.</div>
+            </div>
+            <div className="htp-row" style={{borderBottom:'none', paddingBottom:0}}>
+              <div className="htp-icon" style={{paddingTop:4}}>●</div>
+              <div className="htp-text">
+                Track your score on the progress bar:
+                <div className="htp-dots">
+                  <div className="htp-dot" style={{background:'#4ade80'}}></div><span className="htp-dot-label">correct</span>
+                  <div className="htp-dot" style={{background:'#f87171'}}></div><span className="htp-dot-label">wrong</span>
+                  <div className="htp-dot" style={{background:'#222'}}></div><span className="htp-dot-label">not played</span>
+                </div>
+              </div>
+            </div>
+          </div>
+          <button className="btn-primary" onClick={() => setScreen('name')}>GOT IT</button>
+        </div>
+      </div>
+    );
+  }
+
+  if (screen === 'alreadyPlayed') {
+    const todayEntry = getLeaderboard().filter(e => e.date === getTodayKey() && e.name === playerName).sort((a,b) => b.score - a.score)[0];
+    return (
+      <div className="game-root">
+        <div style={{paddingTop: 20}}>
+          <div className="logo">GASH STAT</div>
+          <div className="already-played">
+            <div className="already-title">ALREADY PLAYED</div>
+            <div className="already-sub">Come back tomorrow, {playerName}.</div>
+            {todayEntry && (
+              <div style={{marginTop: 20}}>
+                <div className="score-big">{todayEntry.score}<span style={{fontSize:40,color:'#555'}}>/10</span></div>
+                <div className="score-label">YOUR SCORE TODAY</div>
+              </div>
+            )}
+          </div>
+          <div className="gap"><button className="btn-primary" onClick={() => setScreen('leaderboard')}>SEE GASH LEAGUE</button></div>
+          <button className="btn-secondary" onClick={() => setScreen('name')}>BACK</button>
+        </div>
+      </div>
+    );
+  }
+
+  if (screen === 'feedback') {
+    const fq = feedback ? feedback.q : qNow;
+    const isCorrect = feedback && feedback.result === 'correct';
+    const isTimeout = feedback && feedback.result === 'timeout';
+    const fbClass = 'feedback-overlay ' + (isCorrect ? 'feedback-correct' : isTimeout ? 'feedback-timeout' : 'feedback-wrong');
+    return (
+      <div className="game-root">
+        <div style={{paddingTop: 10}}>
+          <div className="logo" style={{fontSize:32, marginBottom:4}}>GASH STAT</div>
+          <div className="progress-dots">
+            {Array.from({length:10},(_,i) => {
+              const st = i < answers.length ? answers[i] : i === answers.length ? 'current' : 'empty';
+              return React.createElement(Dot, {key:i, state:st});
+            })}
+          </div>
+          <div className={fbClass}>
+            <div className="feedback-title">{isTimeout ? 'TOO SLOW!' : isCorrect ? 'CORRECT!' : 'WRONG!'}</div>
+            <div className="feedback-vals">
+              <div className="feedback-val-box">
+                <div className="feedback-val-label">ITEM A</div>
+                <div className="feedback-val-name">{fq.a.name}</div>
+                <div className="feedback-val-num">{fq.a.displayValue}</div>
+              </div>
+              <div className="feedback-val-box">
+                <div className="feedback-val-label">ITEM B</div>
+                <div className="feedback-val-name">{fq.b.name}</div>
+                <div className="feedback-val-num">{fq.b.displayValue}</div>
+              </div>
+            </div>
+            <div className="metric-badge" style={{marginTop:10}}>{fq.metricLabel}</div>
+          </div>
+          <p className="dim" style={{textAlign:'center'}}>Next question loading...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (screen === 'results') {
+    const streak = getPlayerStreak(playerName);
+    return (
+      <div className="game-root">
+        <div style={{paddingTop:10}}>
+          <div className="logo" style={{fontSize:32}}>GASH STAT</div>
+          <div className="score-display">
+            <div className="score-big">{score}<span style={{fontSize:40,color:'#555'}}>/10</span></div>
+            <div className="score-label">{TODAY_CAT.label.toUpperCase()} · {getTodayKey()}</div>
+            {streak > 1 && <div style={{marginTop:8}}><span className="streak-badge">🔥 {streak} day streak</span></div>}
+          </div>
+          <div className="emoji-grid">{emojiGrid}</div>
+          <div className="card gap">
+            <div className="section-title">SHARE YOUR RESULT</div>
+            <div className="share-box">{shareText}</div>
+            {copied && <div className="copied-toast">Copied!</div>}
+            <button className="btn-primary" onClick={copyShare}>COPY RESULT</button>
+          </div>
+          <div className="gap"><button className="btn-secondary" onClick={() => setScreen('leaderboard')}>GASH LEAGUE</button></div>
+          <p className="dim" style={{textAlign:'center'}}>Finished in {formatTime(totalTimeMs)}</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (screen === 'leaderboard') {
+    return (
+      <div className="game-root">
+        <div style={{paddingTop:10}}>
+          <div className="logo" style={{fontSize:32}}>GASH LEAGUE</div>
+          <div className="logo-sub">WHO'S THE GASHIEST?</div>
+          <div className="card"><LeaderboardView playerName={playerName} /></div>
+          <button className="btn-secondary" onClick={() => setScreen('name')}>BACK</button>
+        </div>
+      </div>
+    );
+  }
+
+  // GAME
+  const timerPct = timeLeft / 7;
+  const urgent = timeLeft < 3;
+  const timerColor = urgent ? '#f87171' : timerPct > 0.5 ? '#4ade80' : '#FFD700';
+  const dotStates = Array.from({length:10},(_,i) => {
+    if (i < answers.length) return answers[i];
+    if (i === currentQ) return 'current';
+    return 'empty';
+  });
+
+  return (
+    <div className="game-root">
+      <div style={{paddingTop:8}}>
+        <div style={{display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:6}}>
+          <div className="logo" style={{fontSize:26}}>GASH STAT</div>
+          <div style={{textAlign:'right'}}>
+            <div style={{fontFamily:"'DM Mono', monospace", fontSize:10, color:'#666', letterSpacing:1}}>{TODAY_CAT.label}</div>
+            <div style={{fontFamily:"'DM Mono', monospace", fontSize:12, color:'#555'}}>Q{currentQ+1}/10</div>
+          </div>
+        </div>
+        <div className="progress-dots">{dotStates.map((s,i) => React.createElement(Dot, {key:i, state:s}))}</div>
+        <div className="timer-text" style={{color: urgent ? '#f87171' : '#f0f0f0'}}>{Math.ceil(timeLeft)}s</div>
+        <div className="timer-bar-wrap">
+          <div className="timer-bar" style={{width:(timerPct*100)+'%', background:timerColor}} />
+        </div>
+        <div className="metric-badge">{qNow.metricLabel}</div>
+        <div className="card card-accent">
+          <div className="item-label">ITEM A</div>
+          <div className="item-name">{qNow.a.name}</div>
+          <div className="item-value">{qNow.a.displayValue}</div>
+        </div>
+        <div className="vs-divider">VS</div>
+        <div className="card" style={{marginTop:4}}>
+          <div className="item-label">ITEM B</div>
+          <div className="item-name">{qNow.b.name}</div>
+          <div className="item-value" style={{color:'#444'}}>???</div>
+        </div>
+        <p style={{textAlign:'center', color:'#555', fontFamily:"'DM Mono', monospace", fontSize:12, margin:'8px 0 10px'}}>
+          Is {qNow.b.name}'s {qNow.metricLabel} higher or lower?
+        </p>
+        <div className="btn-row">
+          <button className="btn btn-higher" onClick={() => handleAnswer('higher')}>▲ HIGHER</button>
+          <button className="btn btn-lower" onClick={() => handleAnswer('lower')}>▼ LOWER</button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+ReactDOM.createRoot(document.getElementById('root')).render(React.createElement(App));
+</script>
+</body>
+</html>
