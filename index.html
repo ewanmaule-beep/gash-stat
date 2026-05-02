@@ -940,7 +940,7 @@ function App() {
 
   const score = answers.filter(a => a === 'correct').length;
   const emojiGrid = answers.map(a => a === 'correct' ? '🟩' : a === 'wrong' ? '🟥' : '⬛').join('');
-  const shareText = 'Gash Stat — ' + getTodayKey() + '\n' + TODAY_CAT.label + '\n' + score + '/10\n' + emojiGrid;
+  const shareText = 'Gash Stat — ' + getTodayKey() + '\n' + TODAY_CAT.label + '\n' + score + '/10\n' + emojiGrid + '\n' + window.location.origin;
 
   function copyShare() {
     navigator.clipboard.writeText(shareText).then(() => { setCopied(true); setTimeout(() => setCopied(false), 2000); }).catch(() => {});
